@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Resizer | Professional Batch Image Resizer</title>
+    
+    <!-- Global SEO Meta Tags -->
+    <meta name="description" content="Professional online tool for SSC and government exam students to resize, crop, and compress photos/signatures to specific KB/MB sizes. Supports Batch Processing.">
+    <meta name="keywords" content="Batch photo resizer, Image resizer, Signature resizer, Photo compressor, SSC image resizer, Government exam photo resizer, Passport size photo maker">
+    
+    <!-- Cropper.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- JSZip (Included in head as requested) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration & Custom Styles -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bgLight: '#e0e5ec',
+                        bgDark: '#1e293b',
+                        accent: '#6495ED',
+                        accentHover: '#5a86d6'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        /* Neumorphism - Light Mode */
+        .neu-flat {
+            box-shadow: 9px 9px 16px rgb(163, 177, 198, 0.6), -9px -9px 16px rgba(255, 255, 255, 0.5);
+            background-color: #e0e5ec;
+        }
+        .neu-inset {
+            box-shadow: inset 6px 6px 10px 0 rgba(163, 177, 198, 0.6), inset -6px -6px 10px 0 rgba(255, 255, 255, 0.6);
+            background-color: #e0e5ec;
+        }
+        .neu-button:active {
+            box-shadow: inset 4px 4px 8px 0 rgba(163, 177, 198, 0.7), inset -4px -4px 8px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        /* Neumorphism - Dark Mode */
+        .dark .neu-flat {
+            box-shadow: 7px 7px 14px #131a26, -7px -7px 14px #293850;
+            background-color: #1e293b;
+        }
+        .dark .neu-inset {
+            box-shadow: inset 5px 5px 10px #131a26, inset -5px -5px 10px #293850;
+            background-color: #1e293b;
+        }
+        .dark .neu-button:active {
+            box-shadow: inset 4px 4px 8px #131a26, inset -4px -4px 8px #293850;
+        }
+
+        /* Accent Buttons */
+        .neu-accent {
+            box-shadow: 5px 5px 10px rgba(100, 149, 237, 0.3), -5px -5px 10px rgba(255, 255, 255, 0.1);
+            background-color: #6495ED;
+            color: white;
+        }
+        .dark .neu-accent {
+            box-shadow: 5px 5px 10px #111827, -5px -5px 10px #2d3e59;
+        }
+        .neu-accent:active {
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.2), inset -3px -3px 6px rgba(255,255,255,0.2);
+        }
+
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* Input styling overrides */
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Cropper customizations */
+        .cropper-view-box, .cropper-face { border-radius: 8px; }
+        .cropper-line, .cropper-point { background-color: #6495ED; }
+    </style>
+</head>
+<body class="bg-bgLight dark:bg-bgDark text-gray-700 dark:text-gray-300 min-h-screen flex justify-center p-4 sm:p-8">
+
+    <!-- Theme Toggle -->
+    <button id="themeToggle" class="fixed top-4 right-4 w-12 h-12 rounded-full neu-flat neu-button flex items-center justify-center text-xl z-50 transition-all duration-300">
+        <i class="fas fa-moon dark:hidden text-gray-600"></i>
+        <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
+    </button>
+
+    <!-- Main Application Container -->
+    <div class="max-w-lg w-full neu-flat rounded-[30px] p-6 sm:p-8 flex flex-col space-y-6">
+        
+        <!-- Header -->
+        <div class="text-center pb-2 border-b border-gray-300 dark:border-gray-700 border-opacity-50">
+            <h1 class="text-2xl font-bold tracking-wide uppercase">Power Resizer</h1>
+            <p class="text-xs font-medium text-gray-500 mt-1">BATCH PROCESSOR v2.0</p>
+        </div>
+
+        <!-- STAGE 1: Smart Upload -->
+        <div id="uploadArea" class="neu-inset rounded-[20px] border-2 border-dashed border-gray-400 dark:border-gray-600 p-10 flex flex-col items-center justify-center cursor-pointer hover:border-accent transition-colors duration-300">
+            <i class="fas fa-images text-5xl mb-4 text-gray-400 dark:text-gray-500"></i>
+            <h2 class="text-lg font-bold text-center">UPLOAD IMAGE(S)<br><span class="text-xs font-normal text-gray-500">Up to 10 files supported</span></h2>
+            <input type="file" id="imageInput" accept="image/png, image/jpeg, image/webp" multiple class="hidden">
+        </div>
+
+        <!-- STAGE 2: Integrated Image Editor (Hidden Initially) -->
+        <div id="editorArea" class="hidden flex-col space-y-4">
+            <h3 class="text-xs font-bold ml-1 tracking-wide uppercase text-gray-500"><i class="fas fa-crop-alt mr-1"></i> Editor (Active Image)</h3>
+            
+            <!-- Workspace / Cropper -->
+            <div id="cropperWrapper" class="neu-inset rounded-[20px] p-2 overflow-hidden h-64 bg-gray-200 dark:bg-gray-800 relative">
+                <img id="imageWorkspace" src="" alt="Workspace" class="max-w-full h-full block">
+            </div>
+
+            <!-- Static Preview (After Apply Crop) -->
+            <div id="staticPreviewWrapper" class="hidden neu-inset rounded-[20px] p-2 flex items-center justify-center h-64 bg-gray-200 dark:bg-gray-800 relative overflow-hidden">
+                <img id="staticPreviewImg" src="" alt="Cropped Preview" class="max-h-full max-w-full rounded-[12px] shadow-lg">
+                <button id="btnEditAgain" class="absolute bottom-3 right-3 neu-flat bg-white dark:bg-gray-700 px-4 py-2 rounded-full text-xs font-bold shadow-lg hover:text-accent transition-colors">
+                    <i class="fas fa-undo mr-1"></i> Edit Again
+                </button>
+            </div>
+
+            <!-- Editor Tools -->
+            <div id="editorTools" class="grid grid-cols-2 gap-3 pt-2">
+                <button class="preset-btn neu-flat neu-button py-2 rounded-[12px] text-xs font-bold leading-tight flex flex-col items-center justify-center" data-ratio="NaN">
+                    <span>CROP FREE</span>
+                </button>
+                <button class="preset-btn neu-flat neu-button py-2 rounded-[12px] text-xs font-bold leading-tight flex flex-col items-center justify-center" data-ratio="0.7777" data-width="350" data-height="450">
+                    <span>PASSPORT</span> 
+                    <span class="text-[10px] font-normal">350x450px</span>
+                </button>
+                <button class="preset-btn neu-flat neu-button py-2 rounded-[12px] text-xs font-bold leading-tight flex flex-col items-center justify-center" data-ratio="3" data-width="300" data-height="100">
+                    <span>SIGNATURE</span> 
+                    <span class="text-[10px] font-normal">300x100px</span>
+                </button>
+                <button class="preset-btn neu-flat neu-button py-2 rounded-[12px] text-xs font-bold leading-tight flex flex-col items-center justify-center" data-ratio="0.7069" data-width="2480" data-height="3508">
+                    <span>A4 SIZE</span> 
+                    <span class="text-[10px] font-normal">2480x3508px</span>
+                </button>
+            </div>
+
+            <!-- Action Buttons Container -->
+            <div id="applyButtonsContainer" class="mt-3 flex flex-col space-y-3">
+                <button id="btnApplyCrop" class="w-full neu-accent py-3.5 rounded-[15px] font-bold text-sm tracking-wide flex items-center justify-center space-x-2 transition-transform transform active:scale-95 shadow-lg">
+                    <i class="fas fa-check text-lg"></i> <span>APPLY FOR THIS IMAGE</span>
+                </button>
+                <button id="btnApplyAll" class="hidden w-full neu-flat neu-button py-2.5 rounded-[12px] font-bold text-xs tracking-wide flex flex-col items-center justify-center text-gray-600 dark:text-gray-400 hover:text-accent dark:hover:text-accent transition-colors">
+                    <span>APPLY TO ALL UNLOCKED</span>
+                    <span id="applyAllCount" class="text-[10px] font-normal opacity-80 mt-0.5">(Sync to all 0 unlocked images)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- BATCH GALLERY AREA -->
+        <div id="galleryContainer" class="hidden flex-col space-y-3">
+            <div class="flex justify-between items-end border-b border-gray-300 dark:border-gray-700 pb-1 mt-2">
+                <h3 class="text-sm font-bold ml-1 tracking-wide uppercase text-gray-500">Dynamic Gallery</h3>
+                <span class="text-xs font-bold text-accent"><span id="galleryCount">0</span>/10 MAX</span>
+            </div>
+            
+            <div id="galleryGrid" class="grid grid-cols-3 gap-3">
+                <!-- Gallery Cards Generated via JS -->
+            </div>
+        </div>
+
+        <!-- STAGE 3 & Settings: Visual State Container -->
+        <div id="controlsContainer" class="opacity-40 grayscale pointer-events-none transition-all duration-500 flex flex-col space-y-5 pt-4 border-t border-gray-300 dark:border-gray-700 border-opacity-50">
+            <h3 class="text-xs font-bold ml-1 tracking-wide uppercase text-gray-500"><i class="fas fa-sliders-h mr-1"></i> Global Batch Settings</h3>
+            
+            <!-- Dimensions -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold mb-2 ml-1">WIDTH (px)</label>
+                    <input type="number" id="inputWidth" class="w-full neu-inset rounded-[12px] py-3 px-4 text-sm font-semibold outline-none focus:ring-2 ring-accent transition-shadow">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-2 ml-1">HEIGHT (px)</label>
+                    <input type="number" id="inputHeight" class="w-full neu-inset rounded-[12px] py-3 px-4 text-sm font-semibold outline-none focus:ring-2 ring-accent transition-shadow">
+                </div>
+            </div>
+
+            <!-- Target Size -->
+            <div>
+                <label class="block text-xs font-bold mb-2 ml-1">TARGET SIZE PER IMAGE</label>
+                <div class="flex rounded-[12px] neu-inset p-1">
+                    <input type="number" id="inputSize" placeholder="e.g. 50" class="flex-1 bg-transparent py-2 px-3 text-sm font-semibold outline-none">
+                    <select id="selectUnit" class="bg-transparent font-bold text-sm outline-none px-2 cursor-pointer border-l border-gray-300 dark:border-gray-600">
+                        <option value="kb" class="dark:bg-gray-800">KB</option>
+                        <option value="mb" class="dark:bg-gray-800">MB</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Formats -->
+            <div class="flex justify-between px-2 text-sm font-bold">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="format" value="jpg" checked class="w-4 h-4 accent-accent"> <span>JPG</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="format" value="pdf" class="w-4 h-4 accent-accent"> <span>PDF</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="format" value="webp" class="w-4 h-4 accent-accent"> <span>WebP</span>
+                </label>
+            </div>
+
+            <!-- HD Enhancement -->
+            <div class="px-2">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="checkHD" class="w-5 h-5 accent-accent rounded">
+                    <span class="text-sm font-bold">HD Quality Enhancement</span>
+                </label>
+            </div>
+
+            <!-- Generate Button -->
+            <button id="btnGenerate" class="w-full neu-accent py-4 rounded-[15px] font-bold tracking-widest uppercase transition-transform transform active:scale-95 shadow-lg">
+                <i class="fas fa-bolt mr-2"></i> Generate Batch
+            </button>
+            
+            <!-- Prominent Reset Button -->
+            <button id="btnReset" class="w-full neu-flat neu-button py-3 rounded-[15px] font-bold text-sm tracking-wide text-red-500 dark:text-red-400 mt-2 flex items-center justify-center space-x-2 hover:text-red-600 transition-colors">
+                <i class="fas fa-trash-alt"></i> <span>CLEAR EVERYTHING</span>
+            </button>
+        </div>
+
+        <!-- NEW RESULT SLIDER AREA -->
+        <div id="resultSliderContainer" class="hidden flex-col space-y-5 pt-6 mt-4 border-t border-gray-300 dark:border-gray-700 border-opacity-50 relative scroll-mt-6">
+            <h3 class="text-lg font-bold tracking-wide uppercase text-accent text-center"><i class="fas fa-images mr-2"></i> Final Results</h3>
+            
+            <div class="neu-inset rounded-[20px] p-5 flex flex-col items-center relative w-full">
+                
+                <!-- Center Content: Processed Image Display -->
+                <div class="flex flex-col items-center justify-center w-full min-h-[250px] bg-gray-200 dark:bg-gray-800 rounded-[15px] p-3 overflow-hidden relative shadow-inner">
+                    <!-- Left Arrow -->
+                    <button id="btnPrev" class="absolute left-2 top-1/2 transform -translate-y-1/2 w-10 h-10 neu-flat rounded-full flex items-center justify-center hover:text-accent transition-colors disabled:opacity-30 disabled:pointer-events-none z-10 text-xl shadow-lg border border-gray-300/30 dark:border-gray-700/50">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    
+                    <img id="sliderImage" src="" alt="Processed Result" class="max-h-[250px] w-full object-contain rounded-md drop-shadow-md">
+                    
+                    <!-- Right Arrow -->
+                    <button id="btnNext" class="absolute right-2 top-1/2 transform -translate-y-1/2 w-10 h-10 neu-flat rounded-full flex items-center justify-center hover:text-accent transition-colors disabled:opacity-30 disabled:pointer-events-none z-10 text-xl shadow-lg border border-gray-300/30 dark:border-gray-700/50">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <p id="sliderCount" class="text-xs font-bold text-gray-500 mt-4 uppercase tracking-wider">Image 1 of X</p>
+                
+                <!-- High-Trust Info Bar -->
+                <div class="flex flex-wrap items-center justify-center gap-2 mt-3 w-full">
+                    <div class="bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-[10px] flex items-center shadow-sm">
+                        <i class="fas fa-weight-hanging mr-1.5 text-xs opacity-80"></i>
+                        <span id="sliderSize" class="text-xs font-bold uppercase tracking-wide">0 KB</span>
+                    </div>
+                    <div class="bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-[10px] flex items-center shadow-sm">
+                        <i class="fas fa-ruler-combined mr-1.5 text-xs opacity-80"></i>
+                        <span id="sliderDimensions" class="text-xs font-bold uppercase tracking-wide">0 x 0 PX</span>
+                    </div>
+                    <div class="bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 px-3 py-1.5 rounded-[10px] flex items-center shadow-sm">
+                        <i class="fas fa-file-image mr-1.5 text-xs opacity-80"></i>
+                        <span id="sliderFormat" class="text-xs font-bold uppercase tracking-wide">JPG</span>
+                    </div>
+                </div>
+
+                <!-- Single Download -->
+                <button id="btnDownloadSingle" class="mt-6 w-3/4 neu-flat neu-button py-3 rounded-[12px] font-bold text-xs tracking-wide flex items-center justify-center hover:text-accent transition-colors">
+                    <i class="fas fa-download mr-2"></i> DOWNLOAD THIS IMAGE
+                </button>
+            </div>
+
+            <!-- Master Zip Download -->
+            <button id="btnDownloadZip" class="w-full neu-accent py-4 rounded-[15px] font-bold tracking-widest uppercase transition-transform transform active:scale-95 shadow-lg flex items-center justify-center mt-2">
+                <i class="fas fa-file-archive mr-2 text-xl"></i> DOWNLOAD ALL (ZIP)
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // UI Elements
+            const themeToggle = document.getElementById('themeToggle');
+            const htmlElement = document.documentElement;
+            
+            const uploadArea = document.getElementById('uploadArea');
+            const imageInput = document.getElementById('imageInput');
+            
+            const galleryContainer = document.getElementById('galleryContainer');
+            const galleryGrid = document.getElementById('galleryGrid');
+            const galleryCount = document.getElementById('galleryCount');
+            
+            const editorArea = document.getElementById('editorArea');
+            const controlsContainer = document.getElementById('controlsContainer');
+            const imageWorkspace = document.getElementById('imageWorkspace');
+            const cropperWrapper = document.getElementById('cropperWrapper');
+            const staticPreviewWrapper = document.getElementById('staticPreviewWrapper');
+            const staticPreviewImg = document.getElementById('staticPreviewImg');
+            const editorTools = document.getElementById('editorTools');
+            
+            // Inputs & Buttons
+            const inputWidth = document.getElementById('inputWidth');
+            const inputHeight = document.getElementById('inputHeight');
+            const applyButtonsContainer = document.getElementById('applyButtonsContainer');
+            const btnApplyCrop = document.getElementById('btnApplyCrop');
+            const btnApplyAll = document.getElementById('btnApplyAll');
+            const applyAllCount = document.getElementById('applyAllCount');
+            const btnEditAgain = document.getElementById('btnEditAgain');
+            const btnReset = document.getElementById('btnReset'); 
+            const presetBtns = document.querySelectorAll('.preset-btn');
+            const inputSize = document.getElementById('inputSize');
+            const selectUnit = document.getElementById('selectUnit');
+            const checkHD = document.getElementById('checkHD');
+            const btnGenerate = document.getElementById('btnGenerate');
+
+            // Slider UI Elements
+            const resultSliderContainer = document.getElementById('resultSliderContainer');
+            const sliderImage = document.getElementById('sliderImage');
+            const sliderSize = document.getElementById('sliderSize');
+            const sliderDimensions = document.getElementById('sliderDimensions');
+            const sliderFormat = document.getElementById('sliderFormat');
+            const sliderCount = document.getElementById('sliderCount');
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnDownloadSingle = document.getElementById('btnDownloadSingle');
+            const btnDownloadZip = document.getElementById('btnDownloadZip');
+
+            // Data State
+            const MAX_IMAGES = 10;
+            let imageBatch = []; 
+            let activeImageId = null;
+            let cropper = null;
+            let isCropperActive = false;
+            let currentSliderIndex = 0;
+            let hasGenerated = false;
+
+            // --- Theme Control ---
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                htmlElement.classList.add('dark');
+            }
+            themeToggle.addEventListener('click', () => {
+                htmlElement.classList.toggle('dark');
+                localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+            });
+
+            // --- Upload & Drop Logic ---
+            uploadArea.addEventListener('click', () => imageInput.click());
+            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('border-accent'); });
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('border-accent'));
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('border-accent');
+                if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+            });
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length) handleFiles(e.target.files);
+            });
+
+            async function handleFiles(files) {
+                // Smart Cleanup: Clear batch if starting fresh after a generation phase
+                if (hasGenerated) {
+                    btnReset.click();
+                }
+
+                let addedCount = 0;
+                for (let file of files) {
+                    if (imageBatch.length >= MAX_IMAGES) {
+                        alert(`You have reached the limit of ${MAX_IMAGES} images.`);
+                        break;
+                    }
+                    if (!file.type.startsWith('image/')) continue;
+                    
+                    const id = Date.now().toString() + Math.random().toString(36).substring(2);
+                    
+                    // Permanent Base64 Storage
+                    const base64String = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                    
+                    imageBatch.push({
+                        id,
+                        fileName: file.name.split('.')[0],
+                        originalBase64: base64String, // Base64 prevents App-switching memory wipes
+                        croppedCanvas: null,
+                        resultBase64: null,
+                        resultSize: null,
+                        resultDimensions: null,
+                        resultFormat: null,
+                        previewUrl: null, 
+                        isLocked: false,
+                        cropData: null,
+                        canvasData: null,
+                        targetWidth: '',
+                        targetHeight: ''
+                    });
+                    addedCount++;
+                }
+                
+                if (addedCount > 0) {
+                    uploadArea.classList.add('hidden');
+                    galleryContainer.classList.remove('hidden');
+                    galleryContainer.classList.add('flex');
+                    editorArea.classList.remove('hidden');
+                    editorArea.classList.add('flex');
+                    controlsContainer.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+                    
+                    if (!activeImageId || !imageBatch.find(img => img.id === activeImageId)) {
+                        setActiveImage(imageBatch[0].id);
+                    }
+                    renderGallery();
+                }
+                // Clear file input
+                imageInput.value = "";
+            }
+
+            // --- Save Visual States between Toggles ---
+            function saveActiveImageState() {
+                if (!activeImageId) return;
+                const img = imageBatch.find(i => i.id === activeImageId);
+                if (!img) return;
+
+                if (cropper && isCropperActive) {
+                    img.cropData = cropper.getData();
+                    img.canvasData = cropper.getCanvasData();
+                }
+                img.targetWidth = inputWidth.value;
+                img.targetHeight = inputHeight.value;
+            }
+
+            // --- Dynamic Gallery Render ---
+            function renderGallery() {
+                galleryGrid.innerHTML = '';
+                galleryCount.innerText = imageBatch.length;
+                
+                let targetUnlockedCount = imageBatch.filter(img => !img.isLocked && img.id !== activeImageId).length;
+
+                imageBatch.forEach(img => {
+                    const isSelected = img.id === activeImageId;
+                    const isLocked = img.isLocked;
+                    const card = document.createElement('div');
+                    
+                    let borderClasses = 'border-transparent';
+                    if (isLocked) {
+                        borderClasses = isSelected 
+                            ? 'border-[#6495ED] shadow-[0_0_15px_#6495ED] scale-[1.02]' 
+                            : 'border-[#6495ED] shadow-[0_0_8px_#6495ED]';
+                    } else if (isSelected) {
+                        borderClasses = 'border-accent shadow-lg shadow-accent/40 scale-[1.02]';
+                    }
+                    
+                    card.className = `neu-inset rounded-[15px] p-2 flex flex-col relative transition-all duration-300 cursor-pointer border-2 ${borderClasses}`;
+                    
+                    const thumbUrl = img.croppedCanvas ? img.croppedCanvas.toDataURL('image/jpeg', 0.5) : img.originalBase64;
+                    
+                    const lockIconHTML = `
+                        <button class="absolute -top-2 -left-2 w-7 h-7 neu-flat rounded-full flex items-center justify-center text-[11px] font-bold z-10 lock-btn transition-all duration-300 ${isLocked ? 'text-[#6495ED] shadow-[0_0_8px_#6495ED]' : 'text-gray-400 hover:text-[#6495ED] shadow-md'}" data-id="${img.id}" title="Toggle Lock">
+                            <i class="fas ${isLocked ? 'fa-lock' : 'fa-unlock'}"></i>
+                        </button>
+                    `;
+
+                    card.innerHTML = `
+                        ${lockIconHTML}
+                        <button class="absolute -top-2 -right-2 w-7 h-7 neu-flat rounded-full text-gray-500 hover:text-red-500 flex items-center justify-center text-[11px] font-bold z-10 delete-btn shadow-md transition-all duration-300" data-id="${img.id}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <div class="h-20 w-full mt-1.5 rounded-[10px] overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center select-img-btn" data-id="${img.id}">
+                            <img src="${thumbUrl}" class="max-h-full max-w-full object-contain pointer-events-none">
+                        </div>
+                    `;
+                    
+                    galleryGrid.appendChild(card);
+                });
+                
+                if (imageBatch.length < MAX_IMAGES) {
+                    const addMoreBtn = document.createElement('div');
+                    addMoreBtn.className = `neu-inset rounded-[15px] p-2 flex flex-col items-center justify-center min-h-[100px] cursor-pointer hover:border-accent border-2 border-dashed border-gray-400 dark:border-gray-600 transition-colors text-gray-400 hover:text-accent`;
+                    addMoreBtn.innerHTML = `<i class="fas fa-plus text-2xl mb-1"></i><span class="text-[10px] font-bold uppercase tracking-wider">Add More</span>`;
+                    addMoreBtn.onclick = () => imageInput.click();
+                    galleryGrid.appendChild(addMoreBtn);
+                }
+
+                if (imageBatch.length > 1) {
+                    btnApplyAll.classList.remove('hidden');
+                    applyAllCount.innerText = `(Sync to all ${targetUnlockedCount} unlocked images)`;
+                    
+                    if (targetUnlockedCount === 0) {
+                        btnApplyAll.classList.add('opacity-50', 'pointer-events-none');
+                    } else {
+                        btnApplyAll.classList.remove('opacity-50', 'pointer-events-none');
+                    }
+                } else {
+                    btnApplyAll.classList.add('hidden');
+                }
+                
+                document.querySelectorAll('.lock-btn').forEach(btn => {
+                    btn.onclick = (e) => { e.stopPropagation(); toggleLock(btn.dataset.id); }
+                });
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.onclick = (e) => { e.stopPropagation(); removeImage(btn.dataset.id); }
+                });
+                document.querySelectorAll('.select-img-btn').forEach(btn => {
+                    btn.onclick = () => { setActiveImage(btn.dataset.id); }
+                });
+            }
+
+            // --- Toggle Lock Functionality ---
+            function toggleLock(id) {
+                const img = imageBatch.find(i => i.id === id);
+                if (img) {
+                    img.isLocked = !img.isLocked;
+                    renderGallery();
+                }
+            }
+
+            // --- Individual Delete Functionality ---
+            function removeImage(id) {
+                imageBatch = imageBatch.filter(img => img.id !== id);
+                
+                if (imageBatch.length === 0) {
+                    btnReset.click();
+                } else {
+                    if (activeImageId === id) {
+                        setActiveImage(imageBatch[0].id);
+                    } else {
+                        renderGallery();
+                    }
+                }
+            }
+
+            // --- Editor Workspace Synchronization ---
+            function setActiveImage(id) {
+                saveActiveImageState();
+
+                const img = imageBatch.find(i => i.id === id);
+                if (!img) return;
+                activeImageId = id;
+                
+                inputWidth.value = img.targetWidth || '';
+                inputHeight.value = img.targetHeight || '';
+                
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                isCropperActive = false;
+                
+                if (img.croppedCanvas) {
+                    cropperWrapper.classList.add('hidden');
+                    editorTools.classList.add('hidden');
+                    applyButtonsContainer.classList.add('hidden');
+                    staticPreviewWrapper.classList.remove('hidden');
+                    staticPreviewImg.src = img.croppedCanvas.toDataURL('image/jpeg');
+                } else {
+                    imageWorkspace.src = img.originalBase64;
+                    cropperWrapper.classList.remove('hidden');
+                    staticPreviewWrapper.classList.add('hidden');
+                    editorTools.classList.remove('hidden');
+                    applyButtonsContainer.classList.remove('hidden');
+                    
+                    cropper = new Cropper(imageWorkspace, {
+                        viewMode: 1,
+                        dragMode: 'crop',
+                        autoCropArea: 0.9,
+                        responsive: true,
+                        ready() {
+                            if (img.canvasData) cropper.setCanvasData(img.canvasData);
+                            if (img.cropData) cropper.setData(img.cropData);
+                        },
+                        crop(event) {
+                            if(!document.activeElement.classList.contains('preset-btn')) {
+                                inputWidth.value = Math.round(event.detail.width);
+                                inputHeight.value = Math.round(event.detail.height);
+                                
+                                const actImg = imageBatch.find(i => i.id === activeImageId);
+                                if (actImg) {
+                                    actImg.targetWidth = inputWidth.value;
+                                    actImg.targetHeight = inputHeight.value;
+                                }
+                            }
+                        }
+                    });
+                    isCropperActive = true;
+                }
+                renderGallery(); 
+            }
+
+            // Editor Presets
+            presetBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!cropper || !isCropperActive) return;
+                    const ratio = parseFloat(btn.dataset.ratio);
+                    cropper.setAspectRatio(isNaN(ratio) ? NaN : ratio);
+                    if (btn.dataset.width && btn.dataset.height) {
+                        inputWidth.value = btn.dataset.width;
+                        inputHeight.value = btn.dataset.height;
+                        
+                        const actImg = imageBatch.find(i => i.id === activeImageId);
+                        if (actImg) {
+                            actImg.targetWidth = inputWidth.value;
+                            actImg.targetHeight = inputHeight.value;
+                        }
+                    }
+                });
+            });
+
+            // Input Sync Tracker
+            const updateCropBox = () => {
+                const w = parseInt(inputWidth.value);
+                const h = parseInt(inputHeight.value);
+                
+                const actImg = imageBatch.find(i => i.id === activeImageId);
+                if (actImg) {
+                    actImg.targetWidth = inputWidth.value;
+                    actImg.targetHeight = inputHeight.value;
+                }
+
+                if (!cropper || !isCropperActive) return;
+                if (w > 0 && h > 0) cropper.setData({ width: w, height: h });
+            };
+            inputWidth.addEventListener('input', updateCropBox);
+            inputHeight.addEventListener('input', updateCropBox);
+
+            // Apply Crop to Active Image
+            btnApplyCrop.addEventListener('click', () => {
+                if (!cropper) return;
+                const activeImg = imageBatch.find(img => img.id === activeImageId);
+                if (activeImg) {
+                    activeImg.croppedCanvas = cropper.getCroppedCanvas();
+                    activeImg.isLocked = true; 
+                    saveActiveImageState();
+                    setActiveImage(activeImageId); 
+                }
+            });
+
+            // Apply Crop to ALL Unlocked Images
+            btnApplyAll.addEventListener('click', async () => {
+                if (!cropper) return;
+                
+                btnApplyAll.classList.add('pointer-events-none', 'opacity-50');
+                const originalHTML = btnApplyAll.innerHTML;
+                btnApplyAll.innerHTML = `<i class="fas fa-spinner fa-spin text-lg mb-1"></i><span>PROCESSING...</span>`;
+
+                const cropData = cropper.getData();
+                const currentRatio = cropData.width / cropData.height;
+
+                const activeImg = imageBatch.find(img => img.id === activeImageId);
+                if (activeImg) {
+                    activeImg.croppedCanvas = cropper.getCroppedCanvas();
+                    activeImg.isLocked = true;
+                    saveActiveImageState();
+                }
+
+                for (let img of imageBatch) {
+                    if (img.id === activeImageId || img.isLocked) continue;
+                    
+                    await new Promise((resolve) => {
+                        const tempImg = new Image();
+                        tempImg.onload = () => {
+                            const hiddenDiv = document.createElement('div');
+                            hiddenDiv.style.display = 'none';
+                            hiddenDiv.appendChild(tempImg);
+                            document.body.appendChild(hiddenDiv);
+
+                            const tempCropper = new Cropper(tempImg, {
+                                viewMode: 1,
+                                autoCropArea: 0.9,
+                                aspectRatio: currentRatio,
+                                ready() {
+                                    img.croppedCanvas = tempCropper.getCroppedCanvas();
+                                    img.isLocked = true;
+                                    img.targetWidth = activeImg.targetWidth;
+                                    img.targetHeight = activeImg.targetHeight;
+                                    
+                                    tempCropper.destroy();
+                                    document.body.removeChild(hiddenDiv);
+                                    resolve();
+                                }
+                            });
+                        };
+                        tempImg.src = img.originalBase64;
+                    });
+                }
+
+                btnApplyAll.innerHTML = originalHTML;
+                btnApplyAll.classList.remove('pointer-events-none', 'opacity-50');
+                
+                setActiveImage(activeImageId); 
+            });
+
+            // Edit Again functionality
+            btnEditAgain.addEventListener('click', () => {
+                const activeImg = imageBatch.find(img => img.id === activeImageId);
+                if (activeImg) {
+                    activeImg.croppedCanvas = null;
+                    activeImg.isLocked = false;
+                    saveActiveImageState();
+                    setActiveImage(activeImageId); 
+                }
+            });
+
+            // --- Reset All Logic ---
+            btnReset.addEventListener('click', () => {
+                imageBatch = [];
+                activeImageId = null;
+                hasGenerated = false;
+
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                isCropperActive = false;
+
+                inputWidth.value = '';
+                inputHeight.value = '';
+                inputSize.value = '';
+                imageInput.value = '';
+                checkHD.checked = false;
+                document.querySelector('input[name="format"][value="jpg"]').checked = true;
+                selectUnit.value = 'kb';
+
+                imageWorkspace.src = '';
+                staticPreviewImg.src = '';
+
+                // Hide everything cleanly
+                editorArea.classList.add('hidden');
+                editorArea.classList.remove('flex');
+                galleryContainer.classList.add('hidden');
+                galleryContainer.classList.remove('flex');
+                uploadArea.classList.remove('hidden');
+                controlsContainer.classList.add('opacity-40', 'grayscale', 'pointer-events-none');
+                
+                // Hide Slider
+                resultSliderContainer.classList.add('hidden');
+                resultSliderContainer.classList.remove('flex');
+                sliderImage.src = '';
+            });
+
+            // --- SEQUENTIAL BATCH GENERATION ---
+            btnGenerate.addEventListener('click', async () => {
+                if (imageBatch.length === 0) return;
+                
+                hasGenerated = true;
+                btnGenerate.classList.add('pointer-events-none', 'opacity-80');
+                
+                for (let i = 0; i < imageBatch.length; i++) {
+                    const imgObj = imageBatch[i];
+                    
+                    btnGenerate.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> PROCESSING ${i + 1}/${imageBatch.length}...`;
+                    
+                    await new Promise(resolve => setTimeout(resolve, 50)); 
+                    
+                    await processSingleImage(imgObj);
+                }
+
+                btnGenerate.innerHTML = `<i class="fas fa-bolt mr-2"></i> Generate Batch`;
+                btnGenerate.classList.remove('pointer-events-none', 'opacity-80');
+
+                // Logic Update: Show Slider & Scroll Down
+                currentSliderIndex = 0;
+                updateSliderView();
+                
+                // Smart Cleanup / Scroll into view
+                setTimeout(() => {
+                    resultSliderContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+
+            // --- Single Image Processing Engine ---
+            async function processSingleImage(imgObj) {
+                let sourceCanvas = imgObj.croppedCanvas;
+                
+                if (!sourceCanvas) {
+                    sourceCanvas = document.createElement('canvas');
+                    const img = new Image();
+                    img.src = imgObj.originalBase64;
+                    
+                    await new Promise(resolve => {
+                        img.onload = resolve;
+                    });
+                    
+                    sourceCanvas.width = img.width;
+                    sourceCanvas.height = img.height;
+                    const c = sourceCanvas.getContext('2d');
+                    c.drawImage(img, 0, 0);
+                }
+                
+                const targetW = parseInt(imgObj.targetWidth || inputWidth.value);
+                const targetH = parseInt(imgObj.targetHeight || inputHeight.value);
+                let finalCanvas = document.createElement('canvas');
+                finalCanvas.width = targetW || sourceCanvas.width;
+                finalCanvas.height = targetH || sourceCanvas.height;
+                const ctx = finalCanvas.getContext('2d');
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+                if (checkHD.checked) {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.filter = 'brightness(1.02) contrast(1.08) saturate(1.1)';
+                } else {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'medium';
+                }
+
+                ctx.drawImage(sourceCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+
+                const format = document.querySelector('input[name="format"]:checked').value;
+                const targetSizeVal = parseFloat(inputSize.value);
+                const targetUnit = selectUnit.value;
+                
+                let internalMime = format === 'webp' ? 'image/webp' : 'image/jpeg';
+                let outputDataUrl;
+
+                if (targetSizeVal && targetSizeVal > 0) {
+                    const targetBytes = targetSizeVal * (targetUnit === 'mb' ? 1024 * 1024 : 1024);
+                    let adjustedTarget = format === 'pdf' ? targetBytes - 2048 : targetBytes;
+                    if(adjustedTarget < 1024) adjustedTarget = targetBytes; 
+
+                    outputDataUrl = await smartCompress(finalCanvas, internalMime, adjustedTarget);
+                } else {
+                    outputDataUrl = finalCanvas.toDataURL(internalMime, 0.9);
+                }
+
+                imgObj.previewUrl = finalCanvas.toDataURL('image/jpeg', 0.85);
+                imgObj.resultDimensions = `${finalCanvas.width} x ${finalCanvas.height} PX`;
+                imgObj.resultFormat = format.toUpperCase();
+
+                if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: finalCanvas.width > finalCanvas.height ? 'l' : 'p',
+                        unit: 'px',
+                        format:[finalCanvas.width, finalCanvas.height]
+                    });
+                    
+                    pdf.addImage(outputDataUrl, internalMime === 'image/webp' ? 'WEBP' : 'JPEG', 0, 0, finalCanvas.width, finalCanvas.height);
+                    imgObj.resultBase64 = pdf.output('datauristring');
+                    
+                    const fileSize = getBase64Size(imgObj.resultBase64);
+                    imgObj.resultSize = formatBytes(fileSize);
+                } else {
+                    imgObj.resultBase64 = outputDataUrl;
+                    
+                    const fileSize = getBase64Size(outputDataUrl);
+                    imgObj.resultSize = formatBytes(fileSize);
+                }
+            }
+
+            // Binary search to hit target file size
+            async function smartCompress(canvas, mimeType, targetBytes) {
+                let minQuality = 0.0;
+                let maxQuality = 1.0;
+                let bestDataUrl = canvas.toDataURL(mimeType, 1.0);
+                
+                for (let i = 0; i < 10; i++) {
+                    let currentQuality = (minQuality + maxQuality) / 2;
+                    let currentDataUrl = canvas.toDataURL(mimeType, currentQuality);
+                    let currentBytes = Math.round((currentDataUrl.length * 3) / 4);
+                    
+                    if (currentBytes <= targetBytes) {
+                        bestDataUrl = currentDataUrl;
+                        minQuality = currentQuality; 
+                    } else {
+                        maxQuality = currentQuality; 
+                    }
+                }
+                return bestDataUrl;
+            }
+
+            // Utilities
+            function getBase64Size(base64String) {
+                let padding = 0;
+                if (base64String.endsWith('==')) padding = 2;
+                else if (base64String.endsWith('=')) padding = 1;
+                
+                const base64Data = base64String.split(',')[1] || base64String;
+                return (base64Data.length * 0.75) - padding;
+            }
+
+            function formatBytes(bytes, decimals = 2) {
+                if (bytes === 0) return '0 KB';
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+
+            // --- RESULT SLIDER LOGIC ---
+            function updateSliderView() {
+                if (imageBatch.length === 0) return;
+                const imgObj = imageBatch[currentSliderIndex];
+                
+                sliderImage.src = imgObj.previewUrl;
+                sliderSize.innerText = imgObj.resultSize;
+                sliderDimensions.innerText = imgObj.resultDimensions;
+                sliderFormat.innerText = imgObj.resultFormat;
+                sliderCount.innerText = `IMAGE ${currentSliderIndex + 1} OF ${imageBatch.length}`;
+                
+                btnPrev.disabled = currentSliderIndex === 0;
+                btnNext.disabled = currentSliderIndex === imageBatch.length - 1;
+                
+                resultSliderContainer.classList.remove('hidden');
+                resultSliderContainer.classList.add('flex');
+            }
+
+            btnPrev.addEventListener('click', () => {
+                if (currentSliderIndex > 0) {
+                    currentSliderIndex--;
+                    updateSliderView();
+                }
+            });
+
+            btnNext.addEventListener('click', () => {
+                if (currentSliderIndex < imageBatch.length - 1) {
+                    currentSliderIndex++;
+                    updateSliderView();
+                }
+            });
+
+            // Single Download via Base64 Memory
+            btnDownloadSingle.addEventListener('click', () => {
+                const img = imageBatch[currentSliderIndex];
+                if (!img || !img.resultBase64) return;
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = img.resultBase64;
+                a.download = `${img.fileName}_processed.${img.resultFormat.toLowerCase()}`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+
+            // Master Download (ZIP) Integration
+            btnDownloadZip.addEventListener('click', async () => {
+                if (imageBatch.length === 0) return;
+                
+                const originalText = btnDownloadZip.innerHTML;
+                btnDownloadZip.classList.add('pointer-events-none', 'opacity-80');
+                btnDownloadZip.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-xl"></i> ZIPPING...`;
+                
+                const zip = new JSZip();
+                
+                imageBatch.forEach((img, idx) => {
+                    if (img.resultBase64) {
+                        const fileName = `${img.fileName}_processed_${idx + 1}.${img.resultFormat.toLowerCase()}`;
+                        // Extract purely the base64 string without data URI descriptor
+                        const base64Data = img.resultBase64.split(',')[1];
+                        zip.file(fileName, base64Data, {base64: true});
+                    }
+                });
+                
+                const zipBlob = await zip.generateAsync({type: "blob"});
+                const url = window.URL.createObjectURL(zipBlob);
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'PowerResizer_Batch_Export.zip';
+                
+                document.body.appendChild(a);
+                a.click();
+                
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                btnDownloadZip.innerHTML = originalText;
+                btnDownloadZip.classList.remove('pointer-events-none', 'opacity-80');
+            });
+
+        });
+    </script>
+</body>
+</html>
